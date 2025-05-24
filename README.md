@@ -29,6 +29,7 @@ The ESP32 reads serial data from a connected scale (e.g., Dini Argeo) and broadc
 | GPIO 16   | TX (scale) |
 | GPIO 17   | RX (scale) |
 | GND       | GND        |
+| VCC       | AUX VDC    |
 
 ## 📡 Bluetooth Pairing
 
