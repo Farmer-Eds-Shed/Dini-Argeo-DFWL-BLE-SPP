@@ -19,7 +19,7 @@ volatile bool deviceConnected = false;
 bool oldDeviceConnected = false;
 bool bleActive = true;
 unsigned long lastSwitchTime = 0;
-const unsigned long switchInterval = 10000;
+const unsigned long switchInterval = 2000;
 
 #define SERVICE_UUID        "0000181d-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_UUID "00002a9d-0000-1000-8000-00805f9b34fb"
@@ -79,7 +79,7 @@ void setup() {
   esp_bt_gap_set_pin(pin_type, 4, pin_code);
 
   // Init BLE
-  BLEDevice::init("S3 123456");
+  BLEDevice::init("ONeill BLE");
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
 
