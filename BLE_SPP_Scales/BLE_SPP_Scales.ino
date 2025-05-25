@@ -17,9 +17,6 @@ BluetoothSerial SerialBT;
 
 volatile bool deviceConnected = false;
 bool oldDeviceConnected = false;
-bool bleActive = true;
-unsigned long lastSwitchTime = 0;
-const unsigned long switchInterval = 2000;
 
 #define SERVICE_UUID        "0000181d-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_UUID "00002a9d-0000-1000-8000-00805f9b34fb"
@@ -51,7 +48,7 @@ void sendTruTestWeight(float kg) {
   payload[10] = 0x00;                 // Stable weight indicator
 
   pCharacteristic->setValue(payload, sizeof(payload));
-  pCharacteristic->indicate();  // Use Indicate instead of Notify
+  pCharacteristic->indicate();
 
   Serial.printf("[BLE] Indicated weight: %.2f kg [Payload: %02X %02X %02X ... %02X]\n",
                 kg, payload[0], payload[1], payload[2], payload[10]);
@@ -63,22 +60,17 @@ void setup() {
 
   Serial.println("[SYS] Starting Tru-Test BLE/SPP emulator");
 
-  // Init Bluetooth Serial (SPP)
-  SerialBT.begin("ONeill SPP");
-
   if (!SerialBT.begin("ONeill SPP")) {
-  Serial.println("[ERROR] Bluetooth SPP failed to start!");
-} else {
-  Serial.println("[SPP] Bluetooth SPP started.");
-}
+    Serial.println("[ERROR] Bluetooth SPP failed to start!");
+  } else {
+    Serial.println("[SPP] Bluetooth SPP started.");
+  }
 
-    // Set legacy PIN
   esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_FIXED;
   esp_bt_pin_code_t pin_code;
-  memcpy(pin_code, "1234", 4);  // Must be exactly 4 digits
+  memcpy(pin_code, "1234", 4);
   esp_bt_gap_set_pin(pin_type, 4, pin_code);
 
-  // Init BLE
   BLEDevice::init("ONeill BLE");
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -99,7 +91,6 @@ void setup() {
   pAdvertising->start();
 
   Serial.println("[BLE] Advertising as 'ONeill BLE'");
-  lastSwitchTime = millis();
 }
 
 void loop() {
@@ -121,12 +112,16 @@ void loop() {
 
         float weight = weightStr.toFloat();
 
-        if (bleActive && deviceConnected) {
+        if (deviceConnected) {
           Serial.println("[BLE] Sending via indicate...");
           sendTruTestWeight(weight);
-        } else {
+        }
+
+        if (SerialBT.hasClient()) {
           Serial.println("[SPP] Sending via SPP...");
           SerialBT.println(line);
+        } else {
+          Serial.println("[SPP] No client connected.");
         }
       } else {
         Serial.println("[ERROR] Could not parse weight. Not enough commas.");
@@ -143,13 +138,6 @@ void loop() {
 
   if (deviceConnected && !oldDeviceConnected) {
     oldDeviceConnected = true;
-  }
-
-  // Alternate BLE and SPP every 10 seconds
-  if (millis() - lastSwitchTime >= switchInterval) {
-    bleActive = !bleActive;
-    lastSwitchTime = millis();
-    Serial.printf("[MODE] Switched to %s mode\n", bleActive ? "BLE" : "SPP");
   }
 
   delay(10);
