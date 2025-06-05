@@ -18,6 +18,10 @@ BluetoothSerial SerialBT;
 volatile bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
+unsigned long lastSendTime = 0;
+String lastSentWeightStr = "";
+
+
 #define SERVICE_UUID        "0000181d-0000-1000-8000-00805f9b34fb"
 #define CHARACTERISTIC_UUID "00002a9d-0000-1000-8000-00805f9b34fb"
 
@@ -112,10 +116,18 @@ void loop() {
 
         float weight = weightStr.toFloat();
 
+        unsigned long now = millis();
         if (deviceConnected) {
-          Serial.println("[BLE] Sending via indicate...");
-          sendTruTestWeight(weight);
+          if (weightStr != lastSentWeightStr || (now - lastSendTime > 10000)) {
+            Serial.println("[BLE] Sending via indicate...");
+            sendTruTestWeight(weight);
+            lastSentWeightStr = weightStr;
+            lastSendTime = now;
+          } else {
+            Serial.println("[BLE] Skipped due to rate limit");
+          }
         }
+
 
         if (SerialBT.hasClient()) {
           Serial.println("[SPP] Sending via SPP...");
