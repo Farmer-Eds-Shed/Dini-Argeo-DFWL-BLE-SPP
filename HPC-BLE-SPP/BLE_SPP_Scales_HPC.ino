@@ -133,10 +133,29 @@ void loop() {
 
           // Send DFWL-style SPP message
           if (SerialBT.hasClient()) {
-            String sppMsg = "ST,GS," + weightStr + ",kg";
-            SerialBT.println(sppMsg);
-            Serial.println("[SPP] Sent: " + sppMsg);
-          }
+            char sppMsg[21];  // 18 chars + null safety
+            snprintf(sppMsg, sizeof(sppMsg), "ST,GS,%8.1f,kg\r\n", weight);
+
+            // Optional: debug raw bytes
+            Serial.print("[SPP RAW] ");
+            for (int i = 0; i < strlen(sppMsg); i++) {
+              Serial.printf("%02X ", (uint8_t)sppMsg[i]);
+            }
+            Serial.println();
+
+            if (isStable) {
+              SerialBT.print(sppMsg);
+              Serial.print("[SPP] Sent: '");
+              Serial.print(sppMsg);
+              Serial.println("'");
+            } else {
+              Serial.println("[SPP] Skipped (unstable)");
+            }
+
+            Serial.print("[SPP] Sent: '");
+            Serial.print(sppMsg);
+            Serial.println("'");
+                      }
 
           lastSentWeightStr = weightStr;
           lastSendTime = now;
